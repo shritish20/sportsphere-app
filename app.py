@@ -10,6 +10,26 @@ from datetime import datetime, timedelta
 # Set page config for a wider layout and custom title/icon
 st.set_page_config(page_title="Sportsphere", layout="wide", page_icon="🏀")
 
+# --- GLOBAL CONSTANTS (Moved here for wider accessibility) ---
+sports = ['Cricket', 'Football', 'Basketball', 'Badminton', 'Tennis', 'Volleyball']
+team_names = [
+    'Mumbai Mavericks', 'Delhi Dynamos', 'Chennai Chargers', 'Bangalore Blasters',
+    'Kolkata Knights', 'Hyderabad Hawks', 'Pune Panthers', 'Ahmedabad Avengers',
+    'Royal Challengers', 'Super Giants', 'Knight Riders', 'Sunrisers'
+]
+venues = [
+    'Wankhede Stadium', 'Eden Gardens', 'Chinnaswamy Stadium', 'Arun Jaitley Stadium',
+    'MA Chidambaram Stadium', 'Ekana Cricket Stadium', 'Sardar Patel Stadium',
+    'Lords Arena', 'MCG', 'Old Trafford', 'Madison Square Garden', 'Stade de France'
+]
+match_formats = ['T20', 'ODI', 'Test', 'Friendly', 'League', 'Cup Final']
+tournament_formats = ['Knockout', 'Round-robin', 'Group Stage & Playoffs']
+languages = [('en', 'English', True), ('hi', 'Hindi', False), ('es', 'Spanish', False), ('fr', 'French', False)]
+roles = ['Player', 'Scorer', 'Organizer', 'Spectator', 'Coach', 'Umpire']
+issue_types = ['Bug', 'Feature Request', 'Payment Issue', 'Account Issue', 'Other']
+platforms = ['WhatsApp', 'Twitter', 'Facebook', 'Email', 'Instagram', 'LinkedIn']
+
+
 # --- Define Navigation Tabs ---
 tabs = [
     "🏠 Feed", "📊 Cricket Scores", "🏀 Multi-Sport Scores", "🧮 Start Scoring",
@@ -40,25 +60,9 @@ def generate_all_data():
         return start_date + timedelta(seconds=random_seconds)
 
     # Constants for data generation
+    # Current date is June 24, 2025. Data should be around this period.
     start_date_data = datetime(2024, 1, 1)
-    end_date_data = datetime(2025, 6, 24) # Reflecting current date in the context
-    sports = ['Cricket', 'Football', 'Basketball', 'Badminton', 'Tennis', 'Volleyball']
-    team_names = [
-        'Mumbai Mavericks', 'Delhi Dynamos', 'Chennai Chargers', 'Bangalore Blasters',
-        'Kolkata Knights', 'Hyderabad Hawks', 'Pune Panthers', 'Ahmedabad Avengers',
-        'Royal Challengers', 'Super Giants', 'Knight Riders', 'Sunrisers'
-    ]
-    venues = [
-        'Wankhede Stadium', 'Eden Gardens', 'Chinnaswamy Stadium', 'Arun Jaitley Stadium',
-        'MA Chidambaram Stadium', 'Ekana Cricket Stadium', 'Sardar Patel Stadium',
-        'Lords Arena', 'MCG', 'Old Trafford', 'Madison Square Garden', 'Stade de France'
-    ]
-    match_formats = ['T20', 'ODI', 'Test', 'Friendly', 'League', 'Cup Final']
-    tournament_formats = ['Knockout', 'Round-robin', 'Group Stage & Playoffs']
-    languages = [('en', 'English', True), ('hi', 'Hindi', False), ('es', 'Spanish', False), ('fr', 'French', False)]
-    roles = ['Player', 'Scorer', 'Organizer', 'Spectator', 'Coach', 'Umpire']
-    issue_types = ['Bug', 'Feature Request', 'Payment Issue', 'Account Issue', 'Other']
-    platforms = ['WhatsApp', 'Twitter', 'Facebook', 'Email', 'Instagram', 'LinkedIn']
+    end_date_data = datetime(2025, 12, 31) # Extend to end of current year
 
     # --- Generate DataFrames ---
 
@@ -216,12 +220,13 @@ def generate_all_data():
     shop_df = pd.DataFrame(shop_data)
 
     # Profile Data (tied to Create Account Data)
+    # Ensure all user_ids from Create Account have a profile entry
     profile_data = {
-        'user_id': create_account_df['user_id'].tolist(), # Use existing user IDs
+        'user_id': create_account_df['user_id'].tolist(),
         'name': create_account_df['name'].tolist(),
         'photo_url': [f"https://picsum.photos/id/{400+i}/200/200" for i in range(len(create_account_df))], # Placeholder images
         'teams_joined': [random.sample(team_names, k=random.randint(0, 3)) for _ in range(len(create_account_df))],
-        'matches_played': [random.randint(0, 100) for _ in range(len(create_account_df))],
+        'matches_played_profile': [random.randint(0, 100) for _ in range(len(create_account_df))], # Separate column for profile
         'tournaments': [random.randint(0, 15) for _ in range(len(create_account_df))],
         'bio': [fake.sentence() for _ in range(len(create_account_df))],
         'location': [random.choice(venues) for _ in range(len(create_account_df))],
@@ -270,7 +275,7 @@ def generate_all_data():
     return {
         "Feed": feed_df,
         "Cricket Scores": cricket_scores_df,
-        "Multi-Sport Scores": multi_sport_scores_df,
+        "Multi-Sport Scores": multi_sport_scores_df, # Correct key
         "Start Scoring": start_match_df,
         "Start a Tournament": tournament_df,
         "My Matches": my_matches_df,
@@ -372,7 +377,7 @@ st.markdown("Your ultimate platform for sports management and engagement!")
 
 # Sidebar navigation
 st.sidebar.title("Navigate Sportsphere")
-selected_tab = st.sidebar.radio("Go to:", tabs) # 'tabs' is now correctly defined
+selected_tab = st.sidebar.radio("Go to:", tabs)
 
 # Display content based on selected tab
 st.markdown(f"## {selected_tab}")
@@ -459,12 +464,12 @@ elif selected_tab == "🏀 Multi-Sport Scores":
     st.markdown("### Scores Across All Sports")
     st.write("Stay on top of Football, Basketball, Badminton and more!")
 
-    if not data["Multi-Sport Scores"].empty:
+    if not data["Multi-Sport Scores"].empty: # Fixed Key: Multi-Sport Scores
         col_sport_filter, col_status_filter = st.columns(2)
         all_sports = ['All'] + sorted(data["Multi-Sport Scores"]['sport_name'].unique().tolist())
         selected_sport = col_sport_filter.selectbox("Filter by Sport", all_sports)
 
-        all_statuses = ['All'] + sorted(data["Multi_Sport Scores"]['status'].unique().tolist())
+        all_statuses = ['All'] + sorted(data["Multi-Sport Scores"]['status'].unique().tolist()) # Fixed Key: Multi-Sport Scores
         selected_status = col_status_filter.selectbox("Filter by Status", all_statuses)
 
         filtered_df = data["Multi-Sport Scores"].copy()
@@ -492,16 +497,16 @@ elif selected_tab == "🧮 Start Scoring":
 
     with st.form("new_match_form"):
         st.subheader("Match Details")
-        sport_type = st.selectbox("Sport Type", sports)
+        sport_type = st.selectbox("Sport Type", sports) # 'sports' is now global
         team1 = st.selectbox("Team 1", team_names, key="team1_select")
-        
+
         # Filter team2 options to ensure it's different from team1
         team2_options = [t for t in team_names if t != team1]
-        team2 = st.selectbox("Team 2", team2_options, key="team2_select") 
-        
+        team2 = st.selectbox("Team 2", team2_options, key="team2_select")
+
         venue = st.selectbox("Venue", venues)
         match_format = st.selectbox("Match Format", match_formats)
-        
+
         num_overs = 0
         if sport_type == 'Cricket':
              num_overs = st.number_input("Number of Overs (for Cricket)", min_value=1, max_value=50, value=20)
@@ -526,7 +531,7 @@ elif selected_tab == "🧮 Start Scoring":
             else:
                 # In a real app, you'd get the next match ID from a database or a persistent counter
                 new_match_id = f"MID_S{len(data['Start Scoring']) + 1:04d}" # Simple increment for demo
-                
+
                 # Create a dictionary for the new match data (for demonstration)
                 new_match_row_dict = {
                     'match_id': new_match_id,
@@ -540,7 +545,7 @@ elif selected_tab == "🧮 Start Scoring":
                     'number_of_overs': num_overs if sport_type == 'Cricket' else None,
                     'status': 'Scheduled'
                 }
-                
+
                 # Display success and new match info
                 st.success(f"Match '{new_match_id}' between {team1} and {team2} created successfully!")
                 st.json(new_match_row_dict) # Show the data that would be saved
@@ -653,7 +658,7 @@ elif selected_tab == "👥 My Teams":
         selected_team_name = st.selectbox("Select a Team", team_options)
 
         team_info = data["My Teams"][data["My Teams"]['team_name'] == selected_team_name]
-        
+
         if not team_info.empty:
             team_info = team_info.iloc[0] # Get the first (and likely only) row for the selected team
             st.subheader(f"Details for {team_info['team_name']}")
@@ -699,26 +704,29 @@ elif selected_tab == "📈 My Stats":
 
     if not data["My Stats"].empty and not data["Profile"].empty:
         # Combine stats and profile data for a richer view
+        # Ensure 'user_id' is the common key for merging
         merged_stats_profile = pd.merge(data["My Stats"], data["Profile"], on='user_id', how='left')
 
         all_player_ids = sorted(merged_stats_profile['user_id'].unique().tolist())
         selected_player_id = st.selectbox("Select Your Player ID", all_player_ids, index=0)
 
         player_data = merged_stats_profile[merged_stats_profile['user_id'] == selected_player_id]
-        
+
         if not player_data.empty:
             player_data = player_data.iloc[0] # Get the single row for the selected player
-            st.subheader(f"Stats for {player_data['name']}")
             col_photo, col_basic_info = st.columns([0.2, 0.8])
             with col_photo:
                 st.image(player_data['photo_url'], width=150)
             with col_basic_info:
                 st.write(f"**Location:** {player_data['location']} | **Level:** {player_data['level']}")
-                st.markdown(f"*{player_data['bio']}*")
-                st.write(f"**Teams Joined:** {', '.join(player_data['teams_joined']) if player_data['teams_joined'] else 'N/A'}")
-            
+                st.markdown(f"<p><i>{player_data['bio']}</i></p>", unsafe_allow_html=True)
+                # Ensure teams_joined is handled as a list
+                teams_joined_display = ', '.join(player_data['teams_joined']) if isinstance(player_data['teams_joined'], list) and player_data['teams_joined'] else 'N/A'
+                st.write(f"**Teams Joined:** {teams_joined_display}")
+
             st.markdown("#### Key Performance Indicators")
             kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+            # Accessing columns that are guaranteed to be in merged_stats_profile
             kpi1.metric("Matches Played", player_data['matches_played'])
             kpi2.metric("Runs Scored", player_data['runs_scored'])
             kpi3.metric("Wickets Taken", player_data['wickets_taken'])
@@ -851,13 +859,13 @@ elif selected_tab == "🛒 Shop":
 
         product_categories = ['All'] + sorted(data["Shop"]['category'].unique().tolist())
         selected_category = col_cat_filter.selectbox("Filter by Category", product_categories)
-        
+
         search_query = col_search.text_input("Search Products (e.g., 'Bat', 'Jersey')", "")
 
         filtered_products = data["Shop"]
         if selected_category != 'All':
             filtered_products = filtered_products[filtered_products['category'] == selected_category]
-        
+
         if search_query:
             filtered_products = filtered_products[
                 filtered_products['name'].str.contains(search_query, case=False, na=False) |
@@ -892,13 +900,17 @@ elif selected_tab == "🧍‍♂️ Profile":
     st.markdown("### Your Sportsphere Profile")
     st.write("Manage your public profile and view your comprehensive stats.")
 
-    if not data["Profile"].empty:
-        # Get user IDs from Profile data
-        all_profile_ids = sorted(data["Profile"]['user_id'].unique().tolist())
+    if not data["Profile"].empty and not data["My Stats"].empty:
+        # Merge Profile and My Stats to get a comprehensive player_data
+        # Ensure the merge column 'user_id' exists in both.
+        # Use a left merge to keep all profiles, filling missing stats with NaN
+        merged_profile_stats = pd.merge(data["Profile"], data["My Stats"], on='user_id', how='left')
+
+        all_profile_ids = sorted(merged_profile_stats['user_id'].unique().tolist())
         selected_profile_id = st.selectbox("Select Your Profile", all_profile_ids, index=0)
 
-        profile_info = data["Profile"][data["Profile"]['user_id'] == selected_profile_id]
-        
+        profile_info = merged_profile_stats[merged_profile_stats['user_id'] == selected_profile_id]
+
         if not profile_info.empty:
             profile_info = profile_info.iloc[0] # Get the single row for the selected profile
             col_left, col_right = st.columns([0.3, 0.7])
@@ -908,15 +920,17 @@ elif selected_tab == "🧍‍♂️ Profile":
                 st.subheader(profile_info['name'])
                 st.markdown(f"<p style='font-size:1.1em;'>📍 {profile_info['location']} | Level: <b>{profile_info['level']}</b></p>", unsafe_allow_html=True)
                 st.markdown(f"<p><i>{profile_info['bio']}</i></p>", unsafe_allow_html=True)
-            
+
+                # Ensure teams_joined is handled as a list, and default if empty
+                teams_joined_display = ', '.join(profile_info['teams_joined']) if isinstance(profile_info['teams_joined'], list) and profile_info['teams_joined'] else 'N/A'
+                st.write(f"**Teams Joined:** {teams_joined_display}")
+
             st.markdown("---")
             st.subheader("Sports Journey")
             col_m, col_t = st.columns(2)
-            col_m.metric("Matches Played", profile_info['matches_played'])
-            col_t.metric("Tournaments Participated", profile_info['tournaments'])
-
-            teams_joined_display = ', '.join(profile_info['teams_joined']) if profile_info['teams_joined'] else 'None'
-            st.write(f"**Teams Joined:** {teams_joined_display}")
+            # Use data from the merged DataFrame, providing defaults for NaN values
+            col_m.metric("Matches Played", int(profile_info.get('matches_played', 0))) # .get() or fillna
+            col_t.metric("Tournaments Participated", int(profile_info.get('tournaments', 0)))
 
             st.markdown("#### Achievements")
             if profile_info['achievements'] and len(profile_info['achievements']) > 0:
@@ -981,7 +995,7 @@ elif selected_tab == "🔗 Share App":
     st.subheader("Recent Share Activity")
     if not data["Share App"].empty:
         # Display recent shares
-        recent_shares = data["Share App"].sort_values(by='timestamp', ascending=False).head(5).reset_index(drop=True)
+        recent_shares = data["Share App'].sort_values(by='timestamp', ascending=False).head(5).reset_index(drop=True)
         for i, share in recent_shares.iterrows():
             st.markdown(f"**[{share['timestamp'].strftime('%Y-%m-%d %H:%M')}]** `{share['user_id']}` shared on **{share['platform']}** to **{share['shared_to']}**.")
     else:
@@ -1018,7 +1032,7 @@ elif selected_tab == "🆘 Help & Support":
         # Filter for open or in-progress tickets
         # For demo, let's just pick a random user to display their tickets
         demo_user_tickets = data["Help & Support"][data["Help & Support"]['user_id'] == random.choice(data["Help & Support"]['user_id'].unique())].head(5).reset_index(drop=True)
-        
+
         if not demo_user_tickets.empty:
             st.write(f"Showing sample tickets for user: **{demo_user_tickets.iloc[0]['user_id']}**")
             for i, ticket in demo_user_tickets.iterrows():
@@ -1033,7 +1047,7 @@ elif selected_tab == "🆘 Help & Support":
                             st.info(f"Resolved on: {ticket['resolved_at'].strftime('%Y-%m-%d %H:%M')} by Agent {ticket['agent_id']}")
         else:
             st.info("No open support tickets found for this sample.")
-    
+
     with st.expander("View All Help & Support Tickets (Tabular)"):
         st.dataframe(data["Help & Support"], use_container_width=True)
 
@@ -1059,7 +1073,7 @@ elif selected_tab == "📧 Contact Us":
                 st.success("Thank you for your message! We will get back to you soon.")
                 st.info("Note: This is a demo. Data is not permanently stored or added to the underlying DataFrame.")
                 # You would add contact data to a database here.
-    
+
     st.markdown("---")
     st.subheader("Recent Contacts")
     if not data["Contact Us"].empty:
