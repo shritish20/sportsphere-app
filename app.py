@@ -847,7 +847,7 @@ elif selected_tab == "🔗 Share App":
     st.subheader("Recent Share Activity")
     if not data["Share App"].empty:
         # Display recent shares
-        recent_shares = data["Share App'].sort_values(by='timestamp', ascending=False).head(5)
+        recent_shares = data["Share App"].sort_values(by='timestamp', ascending=False).head(5)
         for i, share in recent_shares.iterrows():
             st.text(f"[{share['timestamp'].strftime('%Y-%m-%d %H:%M')}] {share['user_id']} shared on {share['platform']} to {share['shared_to']}.")
     else:
