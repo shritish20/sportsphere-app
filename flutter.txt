@@ -1,0 +1,1212 @@
+name: volguard
+description: VolGuard options trading assistant.
+version: 1.0.0
+environment:
+  sdk: '>=2.18.0 <3.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  google_fonts: ^6.1.0
+  fl_chart: ^0.64.0
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
+  import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'screens/login_screen.dart';
+import 'screens/dashboard_screen.dart';
+import 'screens/option_chain_screen.dart';
+import 'screens/journal_screen.dart';
+import 'screens/trade_log_screen.dart';
+import 'screens/risk_evaluation_screen.dart';
+import 'screens/deploy_strategy_screen.dart';
+import 'screens/settings_screen.dart';
+
+void main() {
+  runApp(const VolGuardApp());
+}
+
+class VolGuardApp extends StatelessWidget {
+  const VolGuardApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'VolGuard',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        primaryColor: Colors.tealAccent,
+        scaffoldBackgroundColor: Colors.black,
+        textTheme: GoogleFonts.urbanistTextTheme(
+          ThemeData.dark().textTheme,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.tealAccent,
+            foregroundColor: Colors.black,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          ),
+        ),
+        cardTheme: CardTheme(
+          color: Colors.grey[900],
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+        ),
+      ),
+      initialRoute: '/login',
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
+        '/option-chain': (context) => const OptionChainScreen(),
+        '/journal': (context) => const JournalScreen(),
+        '/trade-log': (context) => const TradeLogScreen(),
+        '/risk-evaluation': (context) => const RiskEvaluationScreen(),
+        '/deploy-strategy': (context) => const DeployStrategyScreen(),
+        '/settings': (context) => const SettingsScreen(),
+      },
+    );
+  }
+}import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class ApiService {
+  final Dio _dio = Dio();
+  final _storage = const FlutterSecureStorage();
+  final String _baseUrl = 'https://golu-8xwd.onrender.com';
+
+  Future<String?> getAccessToken() async {
+    return await _storage.read(key: 'access_token');
+  }
+
+  Future<Map<String, dynamic>> getOptionSellerDashboard() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/option-seller-dashboard',
+      queryParameters: {'access_token': token},
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getVolatilityPrediction() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/predict/volatility',
+      queryParameters: {'access_token': token},
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getStrategySuggestion() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/suggest/strategy',
+      queryParameters: {'access_token': token},
+    );
+    return response.data;
+  }
+
+  Future<List<dynamic>> getOptionChainTable() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/full-chain-table',
+      queryParameters: {'access_token': token},
+    );
+    return response.data['data'];
+  }
+
+  Future<void> logJournal(Map<String, dynamic> journalData) async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    await _dio.post(
+      '$_baseUrl/log/journal',
+      queryParameters: {'access_token': token},
+      data: journalData,
+    );
+  }
+
+  Future<List<dynamic>> fetchJournals() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/fetch/journals',
+      queryParameters: {'access_token': token},
+    );
+    return response.data['data'];
+  }
+
+  Future<void> logTrade(Map<String, dynamic> tradeData) async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    await _dio.post(
+      '$_baseUrl/log/trade',
+      queryParameters: {'access_token': token},
+      data: tradeData,
+    );
+  }
+
+  Future<List<dynamic>> fetchTrades(String status) async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/fetch/trades',
+      queryParameters: {'access_token': token, 'status': status},
+    );
+    return response.data['data'];
+  }
+
+  Future<Map<String, dynamic>> evaluateRisk(Map<String, dynamic> riskData) async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.post(
+      '$_baseUrl/evaluate/risk',
+      queryParameters: {'access_token': token},
+      data: riskData,
+    );
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getRegime() async {
+    final token = await getAccessToken();
+    if (token == null) throw Exception('No access token found');
+    final response = await _dio.get(
+      '$_baseUrl/calculate/regime',
+      queryParameters: {'access_token': token},
+    );
+    return response.data;
+  }
+}class OptionChainModel {
+  final double strike;
+  final double callIV;
+  final double putIV;
+  final double ivSkew;
+  final double totalTheta;
+  final double totalVega;
+  final double straddlePrice;
+  final int totalOI;
+
+  OptionChainModel({
+    required this.strike,
+    required this.callIV,
+    required this.putIV,
+    required this.ivSkew,
+    required this.totalTheta,
+    required this.totalVega,
+    required this.straddlePrice,
+    required this.totalOI,
+  });
+
+  factory OptionChainModel.fromJson(Map<String, dynamic> json) {
+    return OptionChainModel(
+      strike: (json['Strike'] as num).toDouble(),
+      callIV: (json['Call IV'] as num).toDouble(),
+      putIV: (json['Put IV'] as num).toDouble(),
+      ivSkew: (json['IV Skew'] as num).toDouble(),
+      totalTheta: (json['Total Theta'] as num).toDouble(),
+      totalVega: (json['Total Vega'] as num).toDouble(),
+      straddlePrice: (json['Straddle Price'] as num).toDouble(),
+      totalOI: json['Total OI'] as int,
+    );
+  }
+}class JournalRequest {
+  final String tag;
+  final String strategy;
+  final String emotion;
+  final String note;
+
+  JournalRequest({
+    required this.tag,
+    required this.strategy,
+    required this.emotion,
+    required this.note,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'tag': tag,
+      'strategy': strategy,
+      'emotion': emotion,
+      'note': note,
+    };
+  }
+}class TradeRequest {
+  final String date;
+  final String symbol;
+  final String strategy;
+  final double pnl;
+  final double risk;
+  final String exitReason;
+
+  TradeRequest({
+    required this.date,
+    required this.symbol,
+    required this.strategy,
+    required this.pnl,
+    required this.risk,
+    required this.exitReason,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date,
+      'symbol': symbol,
+      'strategy': strategy,
+      'pnl': pnl,
+      'risk': risk,
+      'exit_reason': exitReason,
+    };
+  }
+}class RiskEvaluationModel {
+  final String strategyName;
+  final Map<String, dynamic> strikeDetails;
+  final double capitalUsed;
+  final String regime;
+  final String userSentiment;
+
+  RiskEvaluationModel({
+    required this.strategyName,
+    required this.strikeDetails,
+    required this.capitalUsed,
+    required this.regime,
+    required this.userSentiment,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'strategy_name': strategyName,
+      'strike_details': strikeDetails,
+      'capital_used': capitalUsed,
+      'regime': regime,
+      'user_sentiment': userSentiment,
+    };
+  }
+}class StrategyRequest {
+  final String action;
+  final double strike;
+  final String expiry;
+  final bool stopLoss;
+  final bool gtt;
+
+  StrategyRequest({
+    required this.action,
+    required this.strike,
+    required this.expiry,
+    required this.stopLoss,
+    required this.gtt,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'action': action,
+      'strike': strike,
+      'expiry': expiry,
+      'stop_loss': stopLoss,
+      'gtt': gtt,
+    };
+  }
+}import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _storage = const FlutterSecureStorage();
+  final _accessTokenController = TextEditingController();
+  String? _errorMessage;
+
+  Future<void> _saveTokenAndNavigate() async {
+    final token = _accessTokenController.text.trim();
+    if (token.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter a valid access token';
+      });
+      return;
+    }
+    await _storage.write(key: 'access_token', value: token);
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, '/dashboard');
+  }
+
+  @override
+  void dispose() {
+    _accessTokenController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'VolGuard',
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      color: Colors.tealAccent,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 32),
+              TextField(
+                controller: _accessTokenController,
+                decoration: InputDecoration(
+                  labelText: 'Enter Access Token',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  errorText: _errorMessage,
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _saveTokenAndNavigate,
+                child: const Text('Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}import 'package:flutter/material.dart';
+import '../api/api_service.dart';
+import '../widgets/widgets.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  final ApiService _apiService = ApiService();
+  Map<String, dynamic>? _dashboardData;
+  Map<String, dynamic>? _volatilityData;
+  Map<String, dynamic>? _strategyData;
+  Map<String, dynamic>? _regimeData;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    try {
+      final dashboard = await _apiService.getOptionSellerDashboard();
+      final volatility = await _apiService.getVolatilityPrediction();
+      final strategy = await _apiService.getStrategySuggestion();
+      final regime = await _apiService.getRegime();
+      if (!mounted) return;
+      setState(() {
+        _dashboardData = dashboard;
+        _volatilityData = volatility;
+        _strategyData = strategy;
+        _regimeData = regime;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('VolGuard Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _fetchData,
+          ),
+        ],
+      ),
+      drawer: const NavigationDrawer(),
+      body: _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          : _dashboardData == null || _volatilityData == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      MetricChip(label: 'Regime: ${_regimeData?['regime'] ?? 'Loading...'}'),
+                      const SizedBox(height: 16),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          MetricCard(title: 'ATM IV', value: '${_dashboardData!['avg_iv']}%'),
+                          MetricCard(title: 'IV Percentile', value: '${_volatilityData!['volatility']['ivp']}%'),
+                          MetricCard(title: 'HV 7D', value: '${_volatilityData!['volatility']['hv_7d']}%'),
+                          MetricCard(title: 'IV-HV Spread', value: '${_volatilityData!['volatility']['iv_r']}%'),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      VolatilityCard(
+                        garch: _volatilityData!['volatility']['garch_7d'],
+                        xgb: _volatilityData!['volatility']['xgb_vol'],
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Greeks', style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 8),
+                              Text('Vega: ${_dashboardData!['total_vega']}'),
+                              Text('Theta: ${_dashboardData!['total_theta']}'),
+                              Text('IV Skew: ${_dashboardData!['iv_skew']}'),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Strategy', style: Theme.of(context).textTheme.titleLarge),
+                              const SizedBox(height: 2),
+                              Text('Name: ${_strategyData!['strategies'].join(', ')}'),
+                              Text('Regime: ${_strategyData!['regime']}'),
+                              Text('Score: ${_strategyData!['score']}'),
+                              Text('Rationale: ${_strategyData!['rationale']}'),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pushNamed(context, '/deploy-strategy'),
+                                child: const Text('Deploy Strategy'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+    );
+  }
+}
+
+class NavigationDrawer extends StatelessWidget {
+  const NavigationDrawer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Drawer(
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          const DrawerHeader(
+            decoration: BoxDecoration(color: Colors.tealAccent),
+            child: Text('VolGuard', style: TextStyle(color: Colors.black, fontSize: 24)),
+          ),
+          ListTile(
+            title: const Text('Dashboard'),
+            onTap: () => Navigator.pushNamed(context, '/dashboard'),
+          ),
+          ListTile(
+            title: const Text('Option Chain'),
+            onTap: () => Navigator.pushNamed(context, '/option-chain'),
+          ),
+          ListTile(
+            title: const Text('Journal'),
+            onTap: () => Navigator.pushNamed(context, '/journal'),
+          ),
+          ListTile(
+            title: const Text('Trade Log'),
+            onTap: () => Navigator.pushNamed(context, '/trade-log'),
+          ),
+          ListTile(
+            title: const Text('Risk Evaluation'),
+            onTap: () => Navigator.pushNamed(context, '/risk-evaluation'),
+          ),
+          ListTile(
+            title: const Text('Settings'),
+            onTap: () => Navigator.pushNamed(context, '/settings'),
+          ),
+        ],
+      ),
+    );
+  }
+}import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
+import '../api/api_service.dart';
+import '../models/option_chain_model.dart';
+import '../widgets/graph_widget.dart';
+
+class OptionChainScreen extends StatefulWidget {
+  const OptionChainScreen({super.key});
+
+  @override
+  State<OptionChainScreen> createState() => _OptionChainScreenState();
+}
+
+class _OptionChainScreenState extends State<OptionChainScreen> {
+  final ApiService _apiService = ApiService();
+  List<OptionChainModel>? _optionChain;
+  String? _errorMessage;
+  double? _atmStrike;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchOptionChain();
+  }
+
+  Future<void> _fetchOptionChain() async {
+    try {
+      final data = await _apiService.getOptionChainTable();
+      final chain = data.map((json) => OptionChainModel.fromJson(json)).toList();
+      if (chain.isNotEmpty) {
+        final strikes = chain.map((e) => e.strike).toList()..sort();
+        _atmStrike = (strikes.first + strikes.last) / 2;
+        chain.retainWhere((e) => (e.strike - _atmStrike!).abs() <= 500);
+      }
+      if (!mounted) return;
+      setState(() {
+        _optionChain = chain;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  Widget _buildStrikeCard(OptionChainModel data) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Strike: ${data.strike}', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Call IV: ${data.callIV}%'),
+            Text('Put IV: ${data.putIV}%'),
+            Text('IV Skew: ${data.ivSkew}'),
+            Text('Theta: ${data.totalTheta}'),
+            Text('Vega: ${data.totalVega}'),
+            Text('Straddle Price: ${data.straddlePrice}'),
+            Text('OI: ${data.totalOI}'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Option Chain')),
+      drawer: const NavigationDrawer(),
+      body: _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          : _optionChain == null
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      GraphWidget(
+                        title: 'IV Smile Curve',
+                        child: LineChart(
+                          LineChartData(
+                            lineBarsData: [
+                              LineChartBarData(
+                                spots: _optionChain!
+                                    .map((e) => FlSpot(e.strike, e.callIV))
+                                    .toList()
+                                  ..sort((a, b) => a.x.compareTo(b.x)),
+                                isCurved: true,
+                                color: Colors.tealAccent,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      GraphWidget(
+                        title: 'Vega & Theta',
+                        child: BarChart(
+                          BarChartData(
+                            barGroups: _optionChain!.asMap().entries.map((e) {
+                              return BarChartGroupData(
+                                x: e.key,
+                                barRods: [
+                                  BarChartRodData(toY: e.value.totalVega, color: Colors.tealAccent),
+                                  BarChartRodData(toY: e.value.totalTheta, color: Colors.blueAccent),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                      ..._optionChain!.map(_buildStrikeCard),
+                    ],
+                  ),
+                ),
+    );
+  }
+}import 'package:flutter/material.dart';
+import '../api/api_service.dart';
+import '../models/journal_request.dart';
+
+class JournalScreen extends StatefulWidget {
+  const JournalScreen({super.key});
+
+  @override
+  State<JournalScreen> createState() => _JournalScreenState();
+}
+
+class _JournalScreenState extends State<JournalScreen> {
+  final ApiService _apiService = ApiService();
+  List<dynamic>? _journals;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchJournals();
+  }
+
+  Future<void> _fetchJournals() async {
+    try {
+      final journals = await _apiService.fetchJournals();
+      if (!mounted) return;
+      setState(() {
+        _journals = journals;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  void _showAddJournalModal() {
+    final tagController = TextEditingController();
+    final strategyController = TextEditingController();
+    final emotionController = TextEditingController();
+    final noteController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: tagController, decoration: const InputDecoration(labelText: 'Tag')),
+            TextField(controller: strategyController, decoration: const InputDecoration(labelText: 'Strategy')),
+            TextField(controller: emotionController, decoration: const InputDecoration(labelText: 'Emotion')),
+            TextField(controller: noteController, decoration: const InputDecoration(labelText: 'Note')),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                final journal = JournalRequest(
+                  tag: tagController.text,
+                  strategy: strategyController.text,
+                  emotion: emotionController.text,
+                  note: noteController.text,
+                );
+                try {
+                  await _apiService.logJournal(journal.toJson());
+                  Navigator.pop(context);
+                  _fetchJournals();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              },
+              child: const Text('Add Entry'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Trade Journal')),
+      drawer: const NavigationDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddJournalModal,
+        child: const Icon(Icons.add),
+      ),
+      body: _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          : _journals == null
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _journals!.length,
+                  itemBuilder: (context, index) {
+                    final journal = _journals![index];
+                    return Card(
+                      child: ListTile(
+                        title: Text(journal['tag']),
+                        subtitle: Text('${journal['strategy']} | ${journal['emotion']}'),
+                        trailing: Text(journal['note']),
+                      ),
+                    );
+                  },
+                ),
+    );
+  }
+}import 'package:flutter/material.dart';
+import '../api/api_service.dart';
+import '../models/trade_request.dart';
+
+class TradeLogScreen extends StatefulWidget {
+  const TradeLogScreen({super.key});
+
+  @override
+  State<TradeLogScreen> createState() => _TradeLogScreenState();
+}
+
+class _TradeLogScreenState extends State<TradeLogScreen> {
+  final ApiService _apiService = ApiService();
+  List<dynamic>? _openTrades;
+  List<dynamic>? _closedTrades;
+  String? _errorMessage;
+  int _selectedTab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTrades();
+  }
+
+  Future<void> _fetchTrades() async {
+    try {
+      final open = await _apiService.fetchTrades('open');
+      final closed = await _apiService.fetchTrades('closed');
+      if (!mounted) return;
+      setState(() {
+        _openTrades = open;
+        _closedTrades = closed;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  void _showAddTradeModal() {
+    final dateController = TextEditingController();
+    final symbolController = TextEditingController();
+    final strategyController = TextEditingController();
+    final pnlController = TextEditingController();
+    final riskController = TextEditingController();
+    final exitReasonController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: dateController, decoration: const InputDecoration(labelText: 'Date')),
+            TextField(controller: symbolController, decoration: const InputDecoration(labelText: 'Symbol')),
+            TextField(controller: strategyController, decoration: const InputDecoration(labelText: 'Strategy')),
+            TextField(controller: pnlController, decoration: const InputDecoration(labelText: 'PnL')),
+            TextField(controller: riskController, decoration: const InputDecoration(labelText: 'Risk')),
+            TextField(controller: exitReasonController, decoration: const InputDecoration(labelText: 'Exit Reason')),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () async {
+                final trade = TradeRequest(
+                  date: dateController.text,
+                  symbol: symbolController.text,
+                  strategy: strategyController.text,
+                  pnl: double.parse(pnlController.text),
+                  risk: double.parse(riskController.text),
+                  exitReason: exitReasonController.text,
+                );
+                try {
+                  await _apiService.logTrade(trade.toJson());
+                  Navigator.pop(context);
+                  _fetchTrades();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+                }
+              },
+              child: const Text('Add Trade'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Trade Log'),
+        bottom: TabBar(
+          onTap: (index) => setState(() => _selectedTab = index),
+          tabs: const [
+            Tab(text: 'Open'),
+            Tab(text: 'Closed'),
+          ],
+        ),
+      ),
+      drawer: const NavigationDrawer(),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showAddTradeModal,
+        child: const Icon(Icons.add),
+      ),
+      body: _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          : _openTrades == null || _closedTrades == null
+              ? const Center(child: CircularProgressIndicator())
+              : _selectedTab == 0
+                  ? _buildTradeList(_openTrades!)
+                  : _buildTradeList(_closedTrades!),
+    );
+  }
+
+  Widget _buildTradeList(List<dynamic> trades) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: trades.length,
+      itemBuilder: (context, index) {
+        final trade = trades[index];
+        return Card(
+          child: ListTile(
+            title: Text('${trade['symbol']} | ${trade['strategy']}'),
+            subtitle: Text('Date: ${trade['date']} | PnL: ${trade['pnl']}'),
+            trailing: Text('Risk: ${trade['risk']}'),
+          ),
+        );
+      },
+    );
+  }
+}import 'package:flutter/material.dart';
+import '../api/api_service.dart';
+import '../models/risk_evaluation_model.dart';
+
+class RiskEvaluationScreen extends StatefulWidget {
+  const RiskEvaluationScreen({super.key});
+
+  @override
+  State<RiskEvaluationScreen> createState() => _RiskEvaluationScreenState();
+}
+
+class _RiskEvaluationScreenState extends State<RiskEvaluationScreen> {
+  final ApiService _apiService = ApiService();
+  final _strategyController = TextEditingController();
+  final _strikeController = TextEditingController();
+  final _capitalController = TextEditingController();
+  final _regimeController = TextEditingController();
+  final _sentimentController = TextEditingController();
+  Map<String, dynamic>? _riskResult;
+  String? _errorMessage;
+
+  Future<void> _evaluateRisk() async {
+    final riskData = RiskEvaluationModel(
+      strategyName: _strategyController.text,
+      strikeDetails: {'strike': double.parse(_strikeController.text)},
+      capitalUsed: double.parse(_capitalController.text),
+      regime: _regimeController.text,
+      userSentiment: _sentimentController.text,
+    );
+    try {
+      final result = await _apiService.evaluateRisk(riskData.toJson());
+      if (!mounted) return;
+      setState(() {
+        _riskResult = result;
+        _errorMessage = null;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _strategyController.dispose();
+    _strikeController.dispose();
+    _capitalController.dispose();
+    _regimeController.dispose();
+    _sentimentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Risk Evaluation')),
+      drawer: const NavigationDrawer(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: _strategyController, decoration: const InputDecoration(labelText: 'Strategy Name')),
+            TextField(controller: _strikeController, decoration: const InputDecoration(labelText: 'Strike')),
+            TextField(controller: _capitalController, decoration: const InputDecoration(labelText: 'Capital Used')),
+            TextField(controller: _regimeController, decoration: const InputDecoration(labelText: 'Regime')),
+            TextField(controller: _sentimentController, decoration: const InputDecoration(labelText: 'Sentiment')),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _evaluateRisk, child: const Text('Evaluate Risk')),
+            if (_errorMessage != null) Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+            if (_riskResult != null)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Risk Score: ${_riskResult!['risk_score']}'),
+                      Text('Risk Tag: ${_riskResult!['risk_tag']}'),
+                      Text('Message: ${_riskResult!['message']}'),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }import 'package:flutter/material.dart';
+import '../models/strategy_request.dart';
+
+class DeployStrategyScreen extends StatefulWidget {
+  const DeployStrategyScreen({super.key});
+
+  @override
+  State<DeployStrategyScreen> createState() => _DeployStrategyScreenState();
+}
+
+class _DeployStrategyScreenState extends State<DeployStrategyScreen> {
+  final _actionController = TextEditingController();
+  final _strikeController = TextEditingController();
+  final _expiryController = TextEditingController();
+  bool _stopLoss = false;
+  bool _gtt = false;
+
+  void _addLeg() {
+    final leg = StrategyRequest(
+      action: _actionController.text,
+      strike: double.parse(_strikeController.text),
+      expiry: _expiryController.text,
+      stopLoss: _stopLoss,
+      gtt: _gtt,
+    );
+    // Placeholder: Store leg locally or send to backend when ready
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Leg added')));
+  }
+
+  @override
+  void dispose() {
+    _actionController.dispose();
+    _strikeController.dispose();
+    _expiryController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Deploy Strategy')),
+      drawer: const NavigationDrawer(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: _actionController, decoration: const InputDecoration(labelText: 'Action (Buy/Sell)')),
+            TextField(controller: _strikeController, decoration: const InputDecoration(labelText: 'Strike')),
+            TextField(controller: _expiryController, decoration: const InputDecoration(labelText: 'Expiry')),
+            SwitchListTile(title: const Text('Stop Loss'), value: _stopLoss, onChanged: (v) => setState(() => _stopLoss = v)),
+            SwitchListTile(title: const Text('GTT'), value: _gtt, onChanged: (v) => setState(() => _gtt = v)),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _addLeg, child: const Text('Add Leg')),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: () {}, child: const Text('Deploy Now')), // Placeholder
+          ],
+        ),
+      ),
+    );
+  }
+}import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class SettingsScreen extends StatefulWidget {
+  const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _capitalController = TextEditingController();
+  final _riskLimitController = TextEditingController();
+  final _hedgeWidthController = TextEditingController();
+  bool _behavioralPrompts = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _capitalController.text = prefs.getString('capital') ?? '';
+      _riskLimitController.text = prefs.getString('risk_limit') ?? '';
+      _hedgeWidthController.text = prefs.getString('hedge_width') ?? '';
+      _behavioralPrompts = prefs.getBool('behavioral_prompts') ?? false;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('capital', _capitalController.text);
+    await prefs.setString('risk_limit', _riskLimitController.text);
+    await prefs.setString('hedge_width', _hedgeWidthController.text);
+    await prefs.setBool('behavioral_prompts', _behavioralPrompts);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Settings saved')));
+  }
+
+  @override
+  void dispose() {
+    _capitalController.dispose();
+    _riskLimitController.dispose();
+    _hedgeWidthController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Settings')),
+      drawer: const NavigationDrawer(),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: _capitalController, decoration: const InputDecoration(labelText: 'Capital Breakdown')),
+            TextField(controller: _riskLimitController, decoration: const InputDecoration(labelText: 'Risk Limits')),
+            TextField(controller: _hedgeWidthController, decoration: const InputDecoration(labelText: 'Default Hedge Width')),
+            SwitchListTile(
+              title: const Text('Behavioral Prompts'),
+              value: _behavioralPrompts,
+              onChanged: (v) => setState(() => _behavioralPrompts = v),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _saveSettings, child: const Text('Save Settings')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+}import 'package:flutter/material.dart';
+
+class VolatilityCard extends StatelessWidget {
+  final double garch;
+  final double xgb;
+
+  const VolatilityCard({super.key, required this.garch, required this.xgb});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Volatility Forecast', style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 8),
+            Text('GARCH 7D: $garch%'),
+            Text('XGBoost 7D: $xgb%'),
+          ],
+        ),
+      ),
+    );
+  }
+}import 'package:flutter/material.dart';
+
+class MetricChip extends StatelessWidget {
+  final String label;
+
+  const MetricChip({super.key, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      label: Text(label),
+      backgroundColor: Colors.tealAccent.withOpacity(0.2),
+      labelStyle: const TextStyle(color: Colors.tealAccent),
+    );
+  }
+}import 'package:flutter/material.dart';
+
+class GraphWidget extends StatelessWidget {
+  final String title;
+  final Widget child;
+
+  const GraphWidget({super.key, required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 16),
+            SizedBox(height: 200, child: child),
+          ],
+        ),
+      ),
+    );
+  }
+}
